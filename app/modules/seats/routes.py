@@ -102,7 +102,6 @@ def initialize_movie_seats(movie_id: int, db: Session = Depends(get_db), current
             detail="Movie not found"
         )
 
-
     cinema_seats = db.query(Seat).filter(
         Seat.cinema_id == movie.cinema_id
     ).all()
@@ -135,3 +134,123 @@ def initialize_movie_seats(movie_id: int, db: Session = Depends(get_db), current
     return {
         "message": f"{len(movie_seats)} movie seats initialized"
     }
+
+
+# Fetch all seats and their section details for a specific movie using table joins
+@router.get("/movie/{movie_id}")
+def get_movie_seats(movie_id: int, db: Session = Depends(get_db)):
+
+    movie = db.query(Movie).filter(
+        Movie.id == movie_id
+    ).first()
+    if not movie:
+        raise HTTPException(
+            status_code=404,
+            detail="Movie not found"
+        )
+
+    movie_seats = db.query(
+        MovieSeat,
+        Seat,
+        Section
+    ).join(
+        Seat,
+        MovieSeat.seat_id == Seat.id
+    ).join(
+        Section,
+        Seat.section_id == Section.id
+    ).filter(
+        MovieSeat.movie_id == movie_id
+    ).all()
+
+    result = []
+
+    for movie_seat, seat, section in movie_seats:
+        result.append({
+            "movie_seat_id": movie_seat.id,
+            "seat_id": seat.id,
+            "section": section.name,
+            "price": section.price,
+            "row": seat.row_name,
+            "seat_number": seat.seat_number,
+            "status": movie_seat.status
+        })
+
+    return result
+
+
+# Fetch all AVAILABLE seats and their section details for a specific movie using table joins
+@router.get("/movie/{movie_id}/available")
+def get_available_seats(movie_id: int, db: Session = Depends(get_db)):
+
+    movie = db.query(Movie).filter(
+        Movie.id == movie_id
+    ).first()
+    if not movie:
+        raise HTTPException(
+            status_code=404,
+            detail="Movie not found"
+        )
+
+    available_seats = db.query(
+        MovieSeat,
+        Seat,
+        Section
+    ).join(
+        Seat,
+        MovieSeat.seat_id == Seat.id
+    ).join(
+        Section,
+        Seat.section_id == Section.id
+    ).filter(
+        MovieSeat.movie_id == movie_id,
+        MovieSeat.status == "AVAILABLE"
+    ).all()
+
+    result = []
+
+    for movie_seat, seat, section in available_seats:
+        result.append({
+            "movie_seat_id": movie_seat.id,
+            "section": section.name,
+            "price": section.price,
+            "row": seat.row_name,
+            "seat_number": seat.seat_number
+        })
+
+    return result
+
+
+# Fetch all BOOKED seats and their section details for a specific movie using table joins
+@router.get("/movie/{movie_id}/booked")
+def get_booked_seats(movie_id: int, db: Session = Depends(get_db)):
+
+    movie = db.query(Movie).filter(
+        Movie.id == movie_id
+    ).first()
+    if not movie:
+        raise HTTPException(
+            status_code=404,
+            detail="Movie not found"
+        )
+
+    booked_seats= db.query(
+        MovieSeat,
+        Seat
+    ).join(
+        Seat,
+        MovieSeat.seat_id == Seat.id
+    ).filter(
+        MovieSeat.movie_id == movie_id,
+        MovieSeat.status == "BOOKED"
+    ).all()
+
+    result = []
+
+    for movie_seat, seat in booked_seats:
+        result.append({
+            "row": seat.row_name,
+            "seat_number": seat.seat_number
+        })
+
+    return result
