@@ -7,10 +7,12 @@ from app.database.dependencies import get_db
 from app.modules.cinemas.model import Cinema
 from app.modules.cinemas.schema import CinemaCreate
 
+from app.modules.auth.dependencies import get_current_user
+
 router = APIRouter()
 
 @router.post("/")
-def create_cinema(request: CinemaCreate, db: Session = Depends(get_db)):
+def create_cinema(request: CinemaCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
 
     cinema = Cinema(
         name=request.name,

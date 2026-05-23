@@ -8,10 +8,12 @@ from app.modules.movies.schema import MovieCreate
 
 from app.modules.cinemas.model import Cinema
 
+from app.modules.auth.dependencies import get_current_user
+
 router = APIRouter()
 
 @router.post("/")
-def create_movie(request: MovieCreate, db: Session = Depends(get_db)):
+def create_movie(request: MovieCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
 
     cinema = db.query(Cinema).filter(
         Cinema.id == request.cinema_id
