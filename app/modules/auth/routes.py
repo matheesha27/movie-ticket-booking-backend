@@ -80,7 +80,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     }
 
 @router.get("/me")
-def current_user(current_user = Depends(get_current_user)):
+def current_user(current_user = Depends(get_current_user)): # Depends() dependency runs automatically by FastAPI
 
     return {
         "id": current_user.id,
