@@ -13,3 +13,13 @@ class SeatCreate(BaseModel):
 
     row_name: str
     seat_number: str
+
+class BulkSeatCreate(BaseModel):
+
+    cinema_id: int
+    section_id: int
+
+    start_row: str
+    end_row: str
+
+    seats_per_row: int
