@@ -1,25 +1,24 @@
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
-
 from sqlalchemy.orm import Session
-
 from app.database.dependencies import get_db
-
-from app.modules.users import User
-
+from app.modules.users.model import User
 from app.modules.auth.schema import RegisterRequest
 from app.modules.auth.schema import LoginRequest
-
 from app.modules.auth.security import hash_password
 from app.modules.auth.security import verify_password
-
 from app.modules.auth.service import create_access_token
+from app.modules.auth.dependencies import get_current_user
+from fastapi.security import OAuth2PasswordRequestForm
 
 router = APIRouter()
 
 @router.post("/register")
 def register(request: RegisterRequest, db: Session = Depends(get_db)):
+
+    print(request)
+    print(request.password)
 
     existing_user = db.query(User).filter(
         User.email == request.email
@@ -49,10 +48,10 @@ def register(request: RegisterRequest, db: Session = Depends(get_db)):
     }
 
 @router.post("/login")
-def login(request: LoginRequest, db: Session = Depends(get_db)):
+def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
 
     user = db.query(User).filter(
-        User.email == request.email
+        User.email == form_data.username
     ).first()
 
     if not user:
@@ -61,7 +60,10 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
             detail="Invalid credentials"
         )
 
-    password_valid = verify_password(request.password, user.password_hash)
+    password_valid = verify_password(
+        form_data.password,
+        user.password_hash
+    )
 
     if not password_valid:
         raise HTTPException(
@@ -79,4 +81,12 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
     return {
         "access_token": token,
         "token_type": "bearer"
+    }
+
+@router.get("/me")
+def current_user(current_user = Depends(get_current_user)):
+
+    return {
+        "id": current_user.id,
+        "email": current_user.email
     }
