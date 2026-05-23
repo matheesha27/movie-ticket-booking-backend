@@ -60,11 +60,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
             detail="Invalid credentials"
         )
 
-    password_valid = verify_password(
-        form_data.password,
-        user.password_hash
-    )
-
+    password_valid = verify_password(form_data.password, user.password_hash)
     if not password_valid:
         raise HTTPException(
             status_code=401,
