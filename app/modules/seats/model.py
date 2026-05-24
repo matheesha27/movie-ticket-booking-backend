@@ -66,3 +66,15 @@ class MovieSeat(Base):
     held_at = Column(DateTime, nullable=True)
     booked_by = Column(BigInteger, nullable=True)
     booked_at = Column(DateTime, nullable=True)
+
+
+class SeatHold(Base):
+
+    __tablename__ = "seat_holds"
+
+    id = Column(BigInteger, primary_key=True)
+    movie_seat_id = Column(BigInteger, ForeignKey("movie_seats.id"), unique=True) # the critical UNIQUE parameter
+
+    user_id = Column(BigInteger)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime)

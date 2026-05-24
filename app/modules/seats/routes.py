@@ -6,9 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.database.dependencies import get_db
 
-from app.modules.seats.model import Section
-from app.modules.seats.model import Seat
-from app.modules.seats.model import MovieSeat
+from app.modules.seats.model import Section, Seat, MovieSeat, SeatHold
 
 from app.modules.movies.model import Movie
 from app.modules.cinemas.model import Cinema
@@ -17,6 +15,8 @@ from app.modules.seats.schema import SectionCreate, BulkSeatCreate
 from app.modules.seats.schema import SeatCreate
 
 from app.modules.auth.dependencies import get_current_user
+
+from datetime import datetime, timedelta
 
 router = APIRouter()
 
@@ -254,3 +254,75 @@ def get_booked_seats(movie_id: int, db: Session = Depends(get_db)):
         })
 
     return result
+
+
+@router.post("/hold")
+def hold_seat(movie_seat_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+
+    # Protection Level 1 - FOR UPDATE
+    seat = db.query(MovieSeat).filter(
+        MovieSeat.id == movie_seat_id
+    ).with_for_update().first()
+
+    # Protection Level 2 - Status
+    if seat.status != "AVAILABLE":
+        raise HTTPException(400, "Seat not available!")
+
+    # Protection Level 3 - Create HELD
+    seat.status = "HELD"
+
+    hold = SeatHold(
+        movie_seat_id=movie_seat_id,
+        user_id=current_user.id,
+        created_at=datetime.utcnow(),
+        expires_at=datetime.utcnow() + timedelta(minutes=5)
+    )
+    db.add(hold)
+    db.commit()
+
+    return hold
+
+
+@router.post("/confirm-booking")
+def confirm_booking(movie_seat_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+
+    # Protection Level 1 - FOR UPDATE
+    seat = db.query(MovieSeat).filter(
+        MovieSeat.id == movie_seat_id
+    ).with_for_update().first()
+
+    # Protection Level 2 - Status
+    hold = db.query(SeatHold).filter(
+        SeatHold.movie_seat_id == movie_seat_id,
+        SeatHold.user_id == current_user.id
+    ).first()
+    if not hold:
+        raise HTTPException(400, "Seat not held")
+
+    # Protection Level 3 - Create BOOKED (Confirm Booking)
+    seat.status = "BOOKED"
+    seat.booked_by = current_user.id
+    seat.booked_at = datetime.utcnow()
+
+    # Delete temporary hold
+    db.delete(hold)
+    db.commit()
+    #
+    # hold = SeatHold(
+    #     movie_seat_id=movie_seat_id,
+    #     user_id=current_user.id,
+    #     expires_at=datetime.utcnow() + timedelta(minutes=5)
+    # )
+    # Delete directly based on the filter conditions
+    # db.query(SeatHold).filter(
+    #     SeatHold.id == movie_seat_id
+    # ).delete(synchronize_session=False)
+    #
+    # db.delete(hold)
+    # db.commit()
+
+    return {
+        "message": "Seat booked successfully",
+        "movie_seat_id": movie_seat_id,
+        "status": seat.status
+    }
