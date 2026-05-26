@@ -68,6 +68,7 @@ class MovieSeat(Base):
     booked_at = Column(DateTime, nullable=True)
 
 
+# Always holds temporary data (rows). Expired HELD rows are deleted via a cronjob.
 class SeatHold(Base):
 
     __tablename__ = "seat_holds"

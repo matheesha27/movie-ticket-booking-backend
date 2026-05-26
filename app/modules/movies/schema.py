@@ -7,5 +7,7 @@ class MovieCreate(BaseModel):
     title: str
     description: str
     category: str
+    duration: int
     banner_image: str
+    trailer: str
     show_time: datetime

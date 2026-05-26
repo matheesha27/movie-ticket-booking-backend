@@ -18,7 +18,6 @@ def create_movie(request: MovieCreate, db: Session = Depends(get_db), current_us
     cinema = db.query(Cinema).filter(
         Cinema.id == request.cinema_id
     ).first()
-
     if not cinema:
         raise HTTPException(
             status_code=404,
@@ -30,7 +29,9 @@ def create_movie(request: MovieCreate, db: Session = Depends(get_db), current_us
         title=request.title,
         description=request.description,
         category=request.category,
+        duration=request.duration,
         banner_image=request.banner_image,
+        trailer=request.trailer,
         show_time=request.show_time
     )
     db.add(movie)
@@ -40,7 +41,7 @@ def create_movie(request: MovieCreate, db: Session = Depends(get_db), current_us
     return movie
 
 @router.get("/")
-def get_movie(db: Session = Depends(get_db)):
+def get_movies(db: Session = Depends(get_db)):
 
     movies = db.query(Movie).all()
 
@@ -56,7 +57,7 @@ def get_movie(movie_id: int, db: Session = Depends(get_db)):
     if not movie:
         raise HTTPException(
             status_code=404,
-            detail="Event not found"
+            detail="Movie not found"
         )
 
     return movie

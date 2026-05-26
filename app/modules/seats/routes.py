@@ -26,7 +26,6 @@ def create_section(request: SectionCreate, db: Session = Depends(get_db), curren
     cinema = db.query(Cinema).filter(
         Cinema.id == request.cinema_id
     ).first()
-
     if not cinema:
         raise HTTPException(
             status_code=404,
@@ -78,7 +77,6 @@ def bulk_create_seats(request: BulkSeatCreate, db: Session = Depends(get_db), cu
                 seat_number=str(seat_no)
             )
             seats.append(seat)
-
     db.add_all(seats)
     db.commit()
 
@@ -88,7 +86,7 @@ def bulk_create_seats(request: BulkSeatCreate, db: Session = Depends(get_db), cu
 
 
 # All seats in the cinema will be copied to 'movie_seats' table
-# Copies Cinema seats --> Movie seats
+# Copies Cinema seats --> Movie seats (Movie specific)
 @router.post("/initialize-event/{movie_id}")
 def initialize_movie_seats(movie_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
 
@@ -108,7 +106,7 @@ def initialize_movie_seats(movie_id: int, db: Session = Depends(get_db), current
     if not cinema_seats:
         raise HTTPException(
             status_code=404,
-            detail="No seats found for cinema"
+            detail="No seats found in cinema"
         )
 
     movie_seats = []
@@ -287,7 +285,7 @@ def hold_seat(movie_seat_id: int, db: Session = Depends(get_db), current_user = 
 def confirm_booking(movie_seat_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
 
     # Protection Level 1 - FOR UPDATE
-    seat = db.query(MovieSeat).filter(
+    movie_seat = db.query(MovieSeat).filter(
         MovieSeat.id == movie_seat_id
     ).with_for_update().first()
 
@@ -300,29 +298,16 @@ def confirm_booking(movie_seat_id: int, db: Session = Depends(get_db), current_u
         raise HTTPException(400, "Seat not held")
 
     # Protection Level 3 - Create BOOKED (Confirm Booking)
-    seat.status = "BOOKED"
-    seat.booked_by = current_user.id
-    seat.booked_at = datetime.utcnow()
+    movie_seat.status = "BOOKED"
+    movie_seat.booked_by = current_user.id
+    movie_seat.booked_at = datetime.utcnow()
 
     # Delete temporary hold
     db.delete(hold)
     db.commit()
-    #
-    # hold = SeatHold(
-    #     movie_seat_id=movie_seat_id,
-    #     user_id=current_user.id,
-    #     expires_at=datetime.utcnow() + timedelta(minutes=5)
-    # )
-    # Delete directly based on the filter conditions
-    # db.query(SeatHold).filter(
-    #     SeatHold.id == movie_seat_id
-    # ).delete(synchronize_session=False)
-    #
-    # db.delete(hold)
-    # db.commit()
 
     return {
         "message": "Seat booked successfully",
         "movie_seat_id": movie_seat_id,
-        "status": seat.status
+        "status": movie_seat.status
     }
