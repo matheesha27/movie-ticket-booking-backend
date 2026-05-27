@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.database.dependencies import get_db
 
 from app.modules.movies.model import Movie
-from app.modules.movies.schema import MovieCreate
+from app.modules.movies.schema import MovieCreate, ShowTimeRequest, MovieCinemasRequest
 
 from app.modules.cinemas.model import Cinema
 
@@ -30,6 +30,7 @@ def create_movie(request: MovieCreate, db: Session = Depends(get_db), current_us
         description=request.description,
         category=request.category,
         duration=request.duration,
+        language=request.language,
         banner_image=request.banner_image,
         trailer=request.trailer,
         show_time=request.show_time
@@ -61,3 +62,39 @@ def get_movie(movie_id: int, db: Session = Depends(get_db)):
         )
 
     return movie
+
+@router.post("/cinemas")
+def get_movie_cinemas(request: MovieCinemasRequest, db: Session = Depends(get_db)):
+    # SELECT name, city FROM public.cinemas
+    # WHERE id IN(
+    #     SELECT DISTINCT cinema_id FROM public.movies
+    #     WHERE title = 'OIC Gadafi'
+    # );
+    cinema_ids = db.query(
+        Movie.cinema_id
+    ).filter(
+        Movie.title == request.movie_title
+    ).distinct()
+
+    cinemas = db.query(Cinema).filter(
+        Cinema.id.in_(cinema_ids)
+    ).all()
+
+    return cinemas
+
+@router.post("/showtime")
+def get_movie_showtime(request: ShowTimeRequest, db: Session = Depends(get_db)):
+    # SELECT show_time FROM public.movies
+    # WHERE cinema_id = 2 AND title = 'OIC Gadafi';
+    movie = (
+        db.query(Movie)
+        .filter(
+            Movie.cinema_id == request.cinema_id,
+            Movie.title == request.movie_title
+        )
+        .first()
+    )
+
+    return {
+        "show_time": movie.show_time if movie else None
+    }
