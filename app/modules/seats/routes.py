@@ -188,6 +188,7 @@ def get_movie_seats(movie_id: int, db: Session = Depends(get_db)):
 
     for movie_seat, seat, section in movie_seats:
         result.append({
+            "id": movie_seat.id + 1,
             "movie_seat_id": movie_seat.id,
             "seat_id": seat.id,
             "section": section.name,
