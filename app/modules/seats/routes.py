@@ -20,9 +20,15 @@ from datetime import datetime, timedelta
 
 router = APIRouter()
 
+# ADMIN only access
 @router.post("/sections")
 def create_section(request: SectionCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-
+    """
+    params: cinema_id, name, price
+    Creates a section for a cinema hall.
+    Eg: Creates a section named "ODC" and priced Rs.700 in cinema_id 1
+    return: Section
+    """
     cinema = db.query(Cinema).filter(
         Cinema.id == request.cinema_id
     ).first()
@@ -46,7 +52,12 @@ def create_section(request: SectionCreate, db: Session = Depends(get_db), curren
 
 @router.post("/")
 def create_seat(request: SeatCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-
+    """
+    params: cinema_id, section_id, row_name, seat_number
+    Creates a seat under a specific Section.
+    Eg: Creates a seat named "G7" under the section_id 1 (ODC) in cinema_id 1
+    return: Seat
+    """
     seat = Seat(
         cinema_id=request.cinema_id,
         section_id=request.section_id,
@@ -61,11 +72,15 @@ def create_seat(request: SeatCreate, db: Session = Depends(get_db), current_user
     return seat
 
 
-# Populate seats for the seat capacity in cinemas
+# ADMIN only access - Populate seats for the seat capacity in cinemas
 # Bulk update seats
 @router.post("/bulk")
 def bulk_create_seats(request: BulkSeatCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-
+    """
+    Create multiple seats under a specific Section.
+    Eg: Creates seats from A1-F20 under the section_id 1 (ODC) in cinema_id 1
+    return: str
+    """
     seats = []
     for row in range(ord(request.start_row), ord(request.end_row) + 1):
         row_letter = chr(row)
@@ -85,11 +100,15 @@ def bulk_create_seats(request: BulkSeatCreate, db: Session = Depends(get_db), cu
     }
 
 
-# All seats in the cinema will be copied to 'movie_seats' table
+# ADMIN only access - All seats in the cinema will be copied to 'movie_seats' table
 # Copies Cinema seats --> Movie seats (Movie specific)
 @router.post("/initialize-event/{movie_id}")
 def initialize_movie_seats(movie_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-
+    """
+    Allocate cinema seats for a particular movie (dedicate).
+    Eg: Allocate seats from A1-F20 under the section_id 1 (ODC) in cinema_id 1 for movie_id 2
+    return: str - movie_seats table is updated.
+    """
     # Check whether the movie exists & get into 'movie' variable if so.
     movie = db.query(Movie).filter(
         Movie.id == movie_id
@@ -137,7 +156,11 @@ def initialize_movie_seats(movie_id: int, db: Session = Depends(get_db), current
 # Fetch all seats and their section details for a specific movie using table joins
 @router.get("/movie/{movie_id}")
 def get_movie_seats(movie_id: int, db: Session = Depends(get_db)):
-
+    """
+    View all seats allocated for the movie (via initialize seats or bulk update).
+    Eg: View all seats allocated for the movie_id 2
+    return: movie_seat object.
+    """
     movie = db.query(Movie).filter(
         Movie.id == movie_id
     ).first()
@@ -180,7 +203,11 @@ def get_movie_seats(movie_id: int, db: Session = Depends(get_db)):
 # Fetch all AVAILABLE seats and their section details for a specific movie using table joins
 @router.get("/movie/{movie_id}/available")
 def get_available_seats(movie_id: int, db: Session = Depends(get_db)):
-
+    """
+    View all AVAILABLE status seats allocated of the movie.
+    Eg: View all AVAILABLE status seats allocated for the movie_id 2
+    return: movie_seat object.
+    """
     movie = db.query(Movie).filter(
         Movie.id == movie_id
     ).first()
@@ -222,7 +249,11 @@ def get_available_seats(movie_id: int, db: Session = Depends(get_db)):
 # Fetch all BOOKED seats and their section details for a specific movie using table joins
 @router.get("/movie/{movie_id}/booked")
 def get_booked_seats(movie_id: int, db: Session = Depends(get_db)):
-
+    """
+    View all BOOKED status seats allocated of the movie.
+    Eg: View all BOOKED status seats allocated for the movie_id 2
+    return: movie_seat object.
+    """
     movie = db.query(Movie).filter(
         Movie.id == movie_id
     ).first()
@@ -256,7 +287,11 @@ def get_booked_seats(movie_id: int, db: Session = Depends(get_db)):
 
 @router.post("/hold")
 def hold_seat(movie_seat_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-
+    """
+    View all HELD status seats allocated of the movie. This is queried using the UNIQUE movie_seat_id parameter.
+    Eg: View all HELD status seats allocated of the movie_seat_id.
+    return: seat_hold object.
+    """
     # Protection Level 1 - FOR UPDATE
     seat = db.query(MovieSeat).filter(
         MovieSeat.id == movie_seat_id
@@ -283,7 +318,10 @@ def hold_seat(movie_seat_id: int, db: Session = Depends(get_db), current_user = 
 
 @router.post("/confirm-booking")
 def confirm_booking(movie_seat_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-
+    """
+    View the booking confirmed details of the movie_seat_id.
+    return: message, movie_seat_id, status object.
+    """
     # Protection Level 1 - FOR UPDATE
     movie_seat = db.query(MovieSeat).filter(
         MovieSeat.id == movie_seat_id
