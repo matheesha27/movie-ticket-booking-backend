@@ -1,4 +1,4 @@
-from sqlalchemy import Column
+from sqlalchemy import Column, Boolean
 from sqlalchemy import BigInteger
 from sqlalchemy import String
 from sqlalchemy import Integer
@@ -47,3 +47,15 @@ class BookingItem(Base):
     movie_seat_id = Column(BigInteger, ForeignKey("movie_seats.id"))
 
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class OTPVerification(Base):
+
+    __tablename__ = "otp_verifications"
+
+    id = Column(BigInteger, primary_key=True)
+
+    email = Column(String)
+    otp = Column(String)
+    expires_at = Column(DateTime)
+    verified = Column(Boolean, default=False)

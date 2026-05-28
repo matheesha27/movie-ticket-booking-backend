@@ -6,17 +6,21 @@ from sqlalchemy.orm import Session
 
 from app.database.dependencies import get_db
 
-from app.modules.bookings.model import Booking
+from app.modules.bookings.model import Booking, OTPVerification
 from app.modules.bookings.model import BookingItem
+from app.modules.bookings.service import send_otp_email
 
 from app.modules.seats.model import MovieSeat
 from app.modules.auth.dependencies import get_current_user
 
 from app.modules.bookings.schema import BookingCreate
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import uuid
+
+from app.modules.utils.otp import generate_otp
+from app.modules.utils.booking_reference import generate_booking_reference
 
 router = APIRouter()
 
@@ -77,3 +81,60 @@ def create_booking(request: BookingCreate, db: Session = Depends(get_db), curren
     db.refresh(booking)
 
     return booking
+
+
+@router.post("/send-otp")
+async def send_otp(payload: dict, db: Session = Depends(get_db)):
+
+    email = payload.get("email")
+    otp = generate_otp()
+    expires_at = datetime.utcnow() + timedelta(minutes=5)
+    otp_record = OTPVerification(
+        email=email,
+        otp=otp,
+        expires_at=expires_at
+    )
+    db.add(otp_record)
+    db.commit()
+
+    await send_otp_email(email, otp)
+
+    return {
+        "message": "OTP sent successfully"
+    }
+
+
+@router.post("/verify-otp")
+async def verify_otp(payload: dict, db: Session = Depends(get_db)):
+
+    email = payload.get("email")
+    otp = payload.get("otp")
+
+    otp_record = db.query(
+        OTPVerification
+    ).filter(
+        OTPVerification.email == email,
+        OTPVerification.otp == otp,
+        OTPVerification.verified == False
+    ).first()
+
+    # Verify OTP
+    if not otp_record:
+        return {
+            "success": False,
+            "message": "Invalid OTP"
+        }
+    if otp_record.expires_at < datetime.utcnow():
+        return {
+            "success": False,
+            "message": "OTP expired"
+        }
+
+    otp_record.verified = True
+    db.commit()
+    booking_reference = generate_booking_reference()
+
+    return {
+        "success": True,
+        "booking_reference": booking_reference
+    }
