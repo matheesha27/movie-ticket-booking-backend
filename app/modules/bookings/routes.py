@@ -8,7 +8,7 @@ from app.database.dependencies import get_db
 
 from app.modules.bookings.model import Booking, OTPVerification
 from app.modules.bookings.model import BookingItem
-from app.modules.bookings.service import send_otp_email
+from app.modules.bookings.service import send_otp_email, send_confirmation_email
 
 from app.modules.seats.model import MovieSeat
 from app.modules.auth.dependencies import get_current_user
@@ -122,7 +122,7 @@ async def verify_otp(payload: dict, db: Session = Depends(get_db)):
     if not otp_record:
         return {
             "success": False,
-            "message": "Invalid OTP"
+            "message": "OTP not found"
         }
     if otp_record.expires_at < datetime.utcnow():
         return {
@@ -133,6 +133,8 @@ async def verify_otp(payload: dict, db: Session = Depends(get_db)):
     otp_record.verified = True
     db.commit()
     booking_reference = generate_booking_reference()
+
+    await send_confirmation_email(payload, booking_reference)
 
     return {
         "success": True,
