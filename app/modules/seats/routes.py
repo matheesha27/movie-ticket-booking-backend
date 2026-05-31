@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
+from fastapi.params import Query
 
 from sqlalchemy.orm import Session
 
@@ -11,7 +12,7 @@ from app.modules.seats.model import Section, Seat, MovieSeat, SeatHold
 from app.modules.movies.model import Movie
 from app.modules.cinemas.model import Cinema
 
-from app.modules.seats.schema import SectionCreate, BulkSeatCreate, MovieSeatCreate
+from app.modules.seats.schema import SectionCreate, BulkSeatCreate, MovieSeatCreate, UniqueMovieSeatsListCreate
 from app.modules.seats.schema import SeatCreate
 
 from app.modules.auth.dependencies import get_current_user
@@ -203,6 +204,7 @@ def initialize_movie_seats(movie_id: int, db: Session = Depends(get_db), current
 
 
 # Fetch all seats and their section details for a specific movie using table joins
+# CHANGE THIS TO RETRIEVE UNIQUE SEATS MAP
 @router.get("/movie/{movie_id}")
 def get_movie_seats(movie_id: int, db: Session = Depends(get_db)):
     """
@@ -238,7 +240,7 @@ def get_movie_seats(movie_id: int, db: Session = Depends(get_db)):
     for movie_seat, seat, section in movie_seats:
         result.append({
             "id": movie_seat.id + 1,
-            # Add unique_movie_seat_id
+            "unique_movie_seat_id": movie_seat.unique_movie_seat,
             "movie_seat_id": movie_seat.id,
             "seat_id": seat.id,
             "section": section.name,
@@ -249,6 +251,52 @@ def get_movie_seats(movie_id: int, db: Session = Depends(get_db)):
         })
 
     return result
+
+
+@router.get("/unique-movie-seats")
+@router.get("/unique-movie-seats")
+def get_unique_movie_seats(
+    cinema_id: int = Query(...),
+    movie_id: int = Query(...),
+    date: str = Query(...),
+    show_time: str = Query(...),
+    db: Session = Depends(get_db)
+):
+
+    movie = db.query(Movie).filter(Movie.id == movie_id).first()
+    if not movie:
+        raise HTTPException(status_code=404, detail="Movie not found")
+
+    date_obj = datetime.strptime(date, "%Y-%m-%d")
+    formatted_date = date_obj.strftime("%Y%m%d")
+
+    parsed_time = datetime.strptime(show_time, "%I.%M%p")
+    formatted_time = parsed_time.strftime("%H%M")
+
+    prefix = f"{cinema_id}/{movie_id}/{formatted_date}/{formatted_time}/"
+
+    movie_seats = (
+        db.query(MovieSeat, Seat, Section)
+        .join(Seat, MovieSeat.seat_id == Seat.id)
+        .join(Section, Seat.section_id == Section.id)
+        .filter(MovieSeat.unique_movie_seat.like(f"{prefix}%"))
+        .all()
+    )
+
+    return [
+        {
+            "id": movie_seat.id,
+            "unique_movie_seat_id": movie_seat.unique_movie_seat,
+            "movie_seat_id": movie_seat.id,
+            "seat_id": seat.id,
+            "section": section.name,
+            "price": section.price,
+            "row": seat.row_name,
+            "seat_number": seat.seat_number,
+            "status": movie_seat.status
+        }
+        for movie_seat, seat, section in movie_seats
+    ]
 
 
 # Fetch all AVAILABLE seats and their section details for a specific movie using table joins

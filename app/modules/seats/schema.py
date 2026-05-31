@@ -31,3 +31,10 @@ class MovieSeatCreate(BaseModel):
     start_date: str
     end_date: str
     show_time: str
+
+class UniqueMovieSeatsListCreate(BaseModel):
+
+    cinema_id: int
+    movie_id: int
+    date: str
+    show_time: str
