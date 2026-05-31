@@ -47,6 +47,8 @@ class MovieSeat(Base):
     movie_id = Column(BigInteger, ForeignKey("movies.id"))
     seat_id = Column(BigInteger, ForeignKey("seats.id"))
 
+    unique_movie_seat = Column(String, unique=True)
+
     status = Column(
         String,
         default="AVAILABLE"
@@ -55,12 +57,13 @@ class MovieSeat(Base):
     # HELD
     # BOOKED
 
-    __table_args__ = (
-        UniqueConstraint(
-            'movie_id',
-            'seat_id'
-        ),
-    )
+    # __table_args__ = (
+    #     UniqueConstraint(
+    #         'movie_id',
+    #         'seat_id',
+    #         'unique_movie_seat'
+    #     ),
+    # )
 
     held_by = Column(BigInteger, nullable=True)
     held_at = Column(DateTime, nullable=True)
@@ -74,7 +77,7 @@ class SeatHold(Base):
     __tablename__ = "seat_holds"
 
     id = Column(BigInteger, primary_key=True)
-    movie_seat_id = Column(BigInteger, ForeignKey("movie_seats.id"), unique=True) # the critical UNIQUE parameter
+    unique_movie_seat_id = Column(BigInteger, ForeignKey("movie_seats.unique_movie_seat"), unique=True) # the critical UNIQUE parameter
 
     user_id = Column(BigInteger)
     created_at = Column(DateTime, default=datetime.utcnow)

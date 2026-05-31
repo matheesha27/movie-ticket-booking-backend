@@ -11,12 +11,13 @@ from app.modules.seats.model import Section, Seat, MovieSeat, SeatHold
 from app.modules.movies.model import Movie
 from app.modules.cinemas.model import Cinema
 
-from app.modules.seats.schema import SectionCreate, BulkSeatCreate
+from app.modules.seats.schema import SectionCreate, BulkSeatCreate, MovieSeatCreate
 from app.modules.seats.schema import SeatCreate
 
 from app.modules.auth.dependencies import get_current_user
 
 from datetime import datetime, timedelta
+from app.modules.seats.service import generate_unique_seat_id
 
 router = APIRouter()
 
@@ -100,13 +101,61 @@ def bulk_create_seats(request: BulkSeatCreate, db: Session = Depends(get_db), cu
     }
 
 
+@router.post("/allocate-movie-seats")
+def allocate_movie_seats(request: MovieSeatCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    """
+    Allocate all seats for a cinema_id, movie_id, date (range) and show_time.
+    date(s) format: YYYYMMDD - "20260531" for 2026-May-31
+    show_time format: "1930" for 7.30pm
+    This generates a globally unique unique_movie_seat in movie_seats table.
+    return: MovieSeat array
+    """
+    start_date = datetime.strptime(request.start_date, "%Y%m%d")
+    end_date = datetime.strptime(request.end_date, "%Y%m%d")
+    total_days = (end_date - start_date).days + 1
+
+    parsed_time = datetime.strptime(request.show_time, "%I.%M%p")
+    show_time = parsed_time.strftime("%H%M")
+
+    cinema_seats = db.query(Seat).filter(
+        Seat.cinema_id == request.cinema_id
+    ).all()
+    if not cinema_seats:
+        raise HTTPException(
+            status_code=404,
+            detail="No seats found in cinema"
+        )
+
+    movie_seats = []
+    for i in range(total_days):
+        current_date = start_date + timedelta(days=i)
+        print(current_date.strftime("%Y%m%d"))
+
+        for cinema_seat in cinema_seats:
+            seat_name = cinema_seat.row_name + cinema_seat.seat_number
+            unique_movie_seat_id = generate_unique_seat_id(request.cinema_id, request.movie_id, current_date, show_time, seat_name)
+            movie_seat = MovieSeat(
+                movie_id=request.movie_id,
+                seat_id=cinema_seat.id,
+                unique_movie_seat= unique_movie_seat_id
+            )
+            movie_seats.append(movie_seat)
+
+    db.add_all(movie_seats)
+    db.commit()
+
+    return {
+        "message": f"{len(movie_seats)} seats allocated"
+    }
+
+
 # ADMIN only access - All seats in the cinema will be copied to 'movie_seats' table
 # Copies Cinema seats --> Movie seats (Movie specific)
 @router.post("/initialize-event/{movie_id}")
 def initialize_movie_seats(movie_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     """
     Allocate cinema seats for a particular movie (dedicate).
-    Eg: Allocate seats from A1-F20 under the section_id 1 (ODC) in cinema_id 1 for movie_id 2
+    Eg: Allocate seats from A1-F20 under the section_id 1 (VIP) in cinema_id 1 for movie_id 2
     return: str - movie_seats table is updated.
     """
     # Check whether the movie exists & get into 'movie' variable if so.
@@ -189,6 +238,7 @@ def get_movie_seats(movie_id: int, db: Session = Depends(get_db)):
     for movie_seat, seat, section in movie_seats:
         result.append({
             "id": movie_seat.id + 1,
+            # Add unique_movie_seat_id
             "movie_seat_id": movie_seat.id,
             "seat_id": seat.id,
             "section": section.name,
