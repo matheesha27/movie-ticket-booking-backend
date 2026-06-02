@@ -12,7 +12,7 @@ from app.modules.seats.model import Section, Seat, MovieSeat, SeatHold
 from app.modules.movies.model import Movie
 from app.modules.cinemas.model import Cinema
 
-from app.modules.seats.schema import SectionCreate, BulkSeatCreate, MovieSeatCreate, UniqueMovieSeatsListCreate
+from app.modules.seats.schema import SectionCreate, BulkSeatCreate, MovieSeatCreate, HoldSeatsRequest
 from app.modules.seats.schema import SeatCreate
 
 from app.modules.auth.dependencies import get_current_user
@@ -134,7 +134,12 @@ def allocate_movie_seats(request: MovieSeatCreate, db: Session = Depends(get_db)
 
         for cinema_seat in cinema_seats:
             seat_name = cinema_seat.row_name + cinema_seat.seat_number
-            unique_movie_seat_id = generate_unique_seat_id(request.cinema_id, request.movie_id, current_date, show_time, seat_name)
+            unique_movie_seat_id = generate_unique_seat_id(
+                request.cinema_id,
+                request.movie_id,
+                datetime.strptime(request.current_date, "%Y%m%d").strftime("%Y%m%d"),
+                show_time,
+                seat_name)
             movie_seat = MovieSeat(
                 movie_id=request.movie_id,
                 seat_id=cinema_seat.id,
@@ -254,7 +259,6 @@ def get_movie_seats(movie_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/unique-movie-seats")
-@router.get("/unique-movie-seats")
 def get_unique_movie_seats(
     cinema_id: int = Query(...),
     movie_id: int = Query(...),
@@ -262,10 +266,22 @@ def get_unique_movie_seats(
     show_time: str = Query(...),
     db: Session = Depends(get_db)
 ):
+    """
+    Returns all seats allocated in the cinema for the movie, date and showtime with the status.
+    "date" field is passed in YYYY-MM-DD format, and it is converted to YYYYMMDD format.
+    "show_time" is passed in H.MMpm format, and it is converted to HHMM format.
+    Eg: View all seats allocated for the cinema_id 1, movie_id 2, date 2026-06-02 and showtime 7.00pm with booking status.
+    return: object
+    """
 
-    movie = db.query(Movie).filter(Movie.id == movie_id).first()
+    movie = db.query(Movie).filter(
+        Movie.id == movie_id
+    ).first()
     if not movie:
-        raise HTTPException(status_code=404, detail="Movie not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Movie not found"
+        )
 
     date_obj = datetime.strptime(date, "%Y-%m-%d")
     formatted_date = date_obj.strftime("%Y%m%d")
@@ -385,34 +401,72 @@ def get_booked_seats(movie_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/hold")
-def hold_seat(movie_seat_id: int, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+def hold_seat(
+        request: HoldSeatsRequest,
+        db: Session = Depends(get_db)
+):
     """
-    View all HELD status seats allocated of the movie. This is queried using the UNIQUE movie_seat_id parameter.
-    Eg: View all HELD status seats allocated of the movie_seat_id.
-    return: seat_hold object.
+    Update the status of selected_seats to HELD using the unique_movie_seat field.
+    Updates movie_seats table status and, pushes new row to seat_holds table.
+    Eg: Update the status of selected_seats list seats to HELD by generating the corresponding unique_movie_seat field.
+    return: boolean.
     """
-    # Protection Level 1 - FOR UPDATE
-    seat = db.query(MovieSeat).filter(
-        MovieSeat.id == movie_seat_id
-    ).with_for_update().first()
+    try:
+        with db.begin(): # Atomic transaction
 
-    # Protection Level 2 - Status
-    if seat.status != "AVAILABLE":
-        raise HTTPException(400, "Seat not available!")
+            parsed_date = datetime.strptime(request.date, "%Y-%m-%d")
+            formatted_date = parsed_date.strftime("%Y%m%d")
 
-    # Protection Level 3 - Create HELD
-    seat.status = "HELD"
+            parsed_time = datetime.strptime(request.show_time, "%I.%M%p")
+            formatted_time = parsed_time.strftime("%H%M")
 
-    hold = SeatHold(
-        movie_seat_id=movie_seat_id,
-        user_id=current_user.id,
-        created_at=datetime.utcnow(),
-        expires_at=datetime.utcnow() + timedelta(minutes=5)
-    )
-    db.add(hold)
-    db.commit()
+            seat_holds = []
 
-    return hold
+            for seat_label in request.selected_seats:
+
+                unique_seat_id = generate_unique_seat_id(
+                    request.cinema_id,
+                    request.movie_id,
+                    parsed_date,
+                    formatted_time,
+                    seat_label
+                )
+
+                # Protection Level 1 - FOR ... UPDATE
+                movie_seat = (
+                    db.query(MovieSeat)
+                    .filter(MovieSeat.unique_movie_seat == unique_seat_id)
+                    .with_for_update()
+                    .first()
+                )
+
+                # Protection Level 2 - Status check
+                if not movie_seat:
+                    raise HTTPException(404, f"Seat {seat_label} not found")
+
+                if movie_seat.status != "AVAILABLE":
+                    raise HTTPException(400, f"Seat {seat_label} not available")
+
+                # Protection Level 3 - Change status (Concurrency)
+                movie_seat.status = "HELD"
+                movie_seat.held_until = datetime.utcnow() + timedelta(minutes=5)
+
+                # Push new row to seat_holds table
+                seat_hold = SeatHold(
+                    unique_movie_seat_id=unique_seat_id,
+                    created_at=movie_seat.held_until - timedelta(minutes=5),
+                    expires_at=movie_seat.held_until
+                )
+                seat_holds.append(seat_hold)
+
+            db.add_all(seat_holds)
+            db.commit()
+
+        return {"status": "SUCCESS"}
+
+    except Exception as e:
+        db.rollback()
+        raise
 
 
 @router.post("/confirm-booking")

@@ -6,6 +6,8 @@ from app.modules.cinemas.routes import router as cinema_router
 from app.modules.movies.routes import router as movie_router
 from app.modules.seats.routes import router as seat_router
 from app.modules.bookings.routes import router as booking_router
+# from apscheduler.schedulers.background import BackgroundScheduler
+# from app.modules.seats.service import cleanup_expired_holds
 
 
 app = FastAPI()
@@ -23,6 +25,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# scheduler = BackgroundScheduler()
+#
+# scheduler.add_job(
+#     cleanup_expired_holds,
+#     "interval",
+#     minutes=1
+# )
+#
+# scheduler.start()
 
 app.include_router(
     user_router,

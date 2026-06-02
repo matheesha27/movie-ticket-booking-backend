@@ -8,7 +8,7 @@ async def send_otp_email(email: str, otp: str):
         recipients=[email],
         body=f"""
 Your OTP for booking verification: {otp}.
-This expires in 5 minutes.""",
+This OTP expires in 5 minutes.""",
         subtype="plain"
     )
 
@@ -28,6 +28,9 @@ Movie: {payload.get("movie_title")}
 Cinema: {payload.get("cinema_name")}
 Seats: {payload.get("seats")}
 Amount Paid: {payload.get("total_price")}
+
+Unique Movie Seat:
+{payload.get("unique_movie_seat_id")}
 
 Booking Reference:
 {booking_reference}

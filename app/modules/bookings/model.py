@@ -21,13 +21,12 @@ class Booking(Base):
         index=True
     )
 
-    user_id = Column(BigInteger, ForeignKey("users.id"))
-    movie_id = Column(BigInteger, ForeignKey("movies.id"))
-
+    unique_movie_seat_id = Column(String, unique=True, nullable=False)
     booking_reference = Column(String, unique=True, nullable=False)
+
     status = Column(
         String,
-        default="PENDING"
+        default="PAID"
     )
     # PENDING
     # PAID

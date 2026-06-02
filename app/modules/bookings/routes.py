@@ -10,7 +10,7 @@ from app.modules.bookings.model import Booking, OTPVerification
 from app.modules.bookings.model import BookingItem
 from app.modules.bookings.service import send_otp_email, send_confirmation_email
 
-from app.modules.seats.model import MovieSeat
+from app.modules.seats.model import MovieSeat, SeatHold
 from app.modules.auth.dependencies import get_current_user
 
 from app.modules.bookings.schema import BookingCreate
@@ -21,6 +21,7 @@ import uuid
 
 from app.modules.utils.otp import generate_otp
 from app.modules.utils.booking_reference import generate_booking_reference
+from app.modules.seats.service import generate_unique_seat_id
 
 router = APIRouter()
 
@@ -109,6 +110,7 @@ async def verify_otp(payload: dict, db: Session = Depends(get_db)):
 
     email = payload.get("email")
     otp = payload.get("otp")
+    selected_seat_labels = payload.get("seats")
 
     otp_record = db.query(
         OTPVerification
@@ -122,17 +124,86 @@ async def verify_otp(payload: dict, db: Session = Depends(get_db)):
     if not otp_record:
         return {
             "success": False,
-            "message": "OTP not found"
+            "message": "Invalid OTP"
         }
+
     if otp_record.expires_at < datetime.utcnow():
         return {
             "success": False,
-            "message": "OTP expired"
+            "message": "OTP is expired"
         }
 
     otp_record.verified = True
-    db.commit()
+    # db.commit()
     booking_reference = generate_booking_reference()
+
+    try:
+
+        formatted_date = datetime.strptime(
+            payload["selected_date"],
+            "%Y-%m-%d"
+        ).strftime("%Y%m%d")
+
+        parsed_time = datetime.strptime(
+            payload["show_time"],
+            "%I.%M%p"
+        )
+        formatted_time = parsed_time.strftime("%H%M")
+
+        for seat_label in selected_seat_labels:
+
+            unique_seat_id = generate_unique_seat_id(
+                payload["cinema_id"],
+                payload["movie_id"],
+                formatted_date,
+                formatted_time,
+                seat_label
+            )
+
+            # Lock seat
+            movie_seat = (
+                db.query(MovieSeat)
+                .filter(MovieSeat.unique_movie_seat == unique_seat_id)
+                .with_for_update(nowait=True)
+                .first()
+            )
+
+            # Validate seat
+            if not movie_seat:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Seat not found"
+                )
+
+            if movie_seat.status != "HELD":
+                raise HTTPException(
+                    400,
+                    f"{seat_label} not held"
+                )
+
+            otp_record.verified = True
+
+            booking = Booking(
+                unique_movie_seat_id=unique_seat_id,
+                booking_reference=booking_reference,
+                created_at=datetime.utcnow()
+            )
+            db.add(booking)
+
+            # Update seat --> BOOKED
+            movie_seat.status = "BOOKED"
+            movie_seat.booked_at = datetime.utcnow()
+
+            # Delete hold seat
+            db.query(SeatHold).filter(
+                SeatHold.unique_movie_seat_id == unique_seat_id
+            ).delete()
+
+            db.commit()
+
+    except Exception:
+        db.rollback()
+        raise
 
     await send_confirmation_email(payload, booking_reference)
 
