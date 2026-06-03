@@ -2,6 +2,7 @@ from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
 from fastapi.params import Query
+import logging
 
 from sqlalchemy.orm import Session
 
@@ -21,6 +22,15 @@ from datetime import datetime, timedelta
 from app.modules.seats.service import generate_unique_seat_id
 
 router = APIRouter()
+
+# 1. Configure the root logging settings
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+# 2. Create a logger instance for this file
+logger = logging.getLogger(__name__)
 
 # ADMIN only access
 @router.post("/sections")
@@ -290,6 +300,7 @@ def get_unique_movie_seats(
     formatted_time = parsed_time.strftime("%H%M")
 
     prefix = f"{cinema_id}/{movie_id}/{formatted_date}/{formatted_time}/"
+    logger.info(f"prefix = {prefix}")
 
     movie_seats = (
         db.query(MovieSeat, Seat, Section)

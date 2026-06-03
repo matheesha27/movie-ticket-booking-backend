@@ -40,9 +40,10 @@ class Seat(Base):
 
 
 class MovieSeat(Base):
+
     __tablename__ = "movie_seats"
 
-    id = Column(BigInteger, primary_key=True)
+    id = Column(BigInteger, Identity(start=1), primary_key=True, index=True)
 
     movie_id = Column(BigInteger, ForeignKey("movies.id"))
     seat_id = Column(BigInteger, ForeignKey("seats.id"))
