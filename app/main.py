@@ -11,10 +11,23 @@ from app.modules.utils.schedular import start_scheduler
 
 app = FastAPI()
 
+# origins = [
+#     "http://localhost",
+#     "http://localhost:8080",
+#     "http://localhost:5173"
+# ]
+
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=origins,
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
+
 origins = [
-    "http://localhost",
-    "http://localhost:8080",
-    "http://localhost:5173"
+    "http://localhost:5173",
+    "https://movie-ticket-booking-frontend-tau.vercel.app/"
 ]
 
 app.add_middleware(
