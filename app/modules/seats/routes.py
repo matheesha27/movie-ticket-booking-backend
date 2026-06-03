@@ -23,13 +23,11 @@ from app.modules.seats.service import generate_unique_seat_id
 
 router = APIRouter()
 
-# 1. Configure the root logging settings
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-# 2. Create a logger instance for this file
 logger = logging.getLogger(__name__)
 
 # ADMIN only access
