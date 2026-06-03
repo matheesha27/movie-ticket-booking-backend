@@ -5,3 +5,7 @@ wheel~=0.45.1
 Jinja2~=3.1.2
 setuptools~=65.5.0
 pydantic~=2.10.6
+datetime~=6.0
+passlib~=1.7.4
+apscheduler~=3.11.2
+cryptography~=47.0.0
