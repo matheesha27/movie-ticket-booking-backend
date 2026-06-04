@@ -101,9 +101,5 @@ def get_movie_showtime(request: ShowTimeRequest, db: Session = Depends(get_db)):
 
 
 @router.get("/db-test")
-def db_test(db: Session = Depends(get_db)):
-    try:
-        result = db.execute("SELECT 1").fetchone()
-        return {"status": "OK", "result": str(result)}
-    except Exception as e:
-        return {"status": "FAILED", "error": str(e)}
+def test(db: Session = Depends(get_db)):
+    return {"ok": db.execute("SELECT 1").scalar()}
