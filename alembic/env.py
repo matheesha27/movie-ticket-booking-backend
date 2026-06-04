@@ -5,6 +5,16 @@ from sqlalchemy import pool
 
 from alembic import context
 
+from app.database.session import Base
+
+from app.modules.auth import *
+from app.modules.movies.model import *
+from app.modules.cinemas.model import *
+from app.modules.seats.model import *
+from app.modules.bookings.model import *
+
+target_metadata = Base.metadata
+
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
