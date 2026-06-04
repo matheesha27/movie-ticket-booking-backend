@@ -55,8 +55,12 @@ def release_expired_seats():
         db.commit()
         if held_seat_rows > 0:
             logger.info(f"Successfully released {held_seat_rows} expired HELD movie seats.")
+        elif held_seat_rows == 0:
+            logger.info(f"All HELD seats are already released.")
         if past_movie_rows > 0:
             logger.info(f"Successfully expired {past_movie_rows} past movie seats.")
+        elif past_movie_rows == 0:
+            logger.info(f"All past movie seats are already flagged EXPIRED.")
 
     except Exception as e:
         db.rollback()
