@@ -60,18 +60,19 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        # FORCED SCHEMA FIX: Tells Alembic exactly where to build the version table
+        version_table_schema="public",
     )
 
     with context.begin_transaction():
+        # FORCED SCHEMA FIX: Tells PostgreSQL to search the public schema for this session
+        context.execute("SET search_path TO public, extensions;")
         context.run_migrations()
 
 
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode."""
-    # Fetch configuration section
     ini_section = config.get_section(config.config_ini_section, {})
-
-    # Overwrite the configuration url string dynamically with our helper
     ini_section["sqlalchemy.url"] = get_url()
 
     connectable = engine_from_config(
@@ -81,8 +82,14 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
+        # FORCED SCHEMA FIX: Forces the active connection session to target 'public'
+        connection.execute(sa.text("SET search_path TO public, extensions;"))
+
         context.configure(
-            connection=connection, target_metadata=target_metadata
+            connection=connection,
+            target_metadata=target_metadata,
+            # FORCED SCHEMA FIX: Ensures the alembic_version table is locked to public
+            version_table_schema="public"
         )
 
         with context.begin_transaction():
