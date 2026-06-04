@@ -6,6 +6,13 @@ from sqlalchemy import pool
 
 from alembic import context
 
+# Securely load local .env variables if the package is installed locally
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 # 1. Keep your Base import
 from app.database.session import Base
 
@@ -29,11 +36,20 @@ if config.config_file_name is not None:
 
 def get_url():
     """
-    Helper function to dynamically inject a real environment variable 
-    if your alembic.ini contains a generic default placeholder.
+    Looks for DATABASE_URL in the system environment first (Render / .env).
+    If it doesn't exist, it falls back to the alembic.ini placeholder.
     """
-    # If you use a variable named DATABASE_URL in a .env file, it will load it here
-    return os.getenv("DATABASE_URL", config.get_main_option("sqlalchemy.url"))
+    database_url = os.getenv("DATABASE_URL")
+    if database_url:
+        # Render/Supabase provides strings starting with postgres://
+        # SQLAlchemy 1.4+ strictly requires postgresql:// and our explicit driver
+        if database_url.startswith("postgres://"):
+            database_url = database_url.replace("postgres://", "postgresql+psycopg2://", 1)
+        elif database_url.startswith("postgresql://") and "+psycopg2" not in database_url:
+            database_url = database_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+        return database_url
+
+    return config.get_main_option("sqlalchemy.url")
 
 
 def run_migrations_offline() -> None:
