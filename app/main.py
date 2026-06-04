@@ -20,35 +20,22 @@ from app.modules.seats.model import SeatHold
 from app.modules.bookings.model import Booking
 from app.modules.bookings.model import BookingItem
 
-
-Base.metadata.create_all(bind=engine)
-
+# Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
-
-# origins = [
-#     "http://localhost",
-#     "http://localhost:8080",
-#     "http://localhost:5173"
-# ]
-
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=origins,
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
 
 origins = [
     "http://localhost:5173",
     "http://localhost:10000",
-    "https://movie-ticket-booking-frontend-tau.vercel.app/"
+    "https://movie-ticket-booking-frontend-tau.vercel.app"
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=[
+        "http://localhost:5173",
+        "https://movie-ticket-booking-frontend-tau.vercel.app",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
