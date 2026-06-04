@@ -71,5 +71,5 @@ def release_expired_seats():
 
 
 def start_scheduler():
-    scheduler.add_job(release_expired_seats, "interval", seconds=60)
+    scheduler.add_job(release_expired_seats, "interval", seconds=3600)
     scheduler.start()
