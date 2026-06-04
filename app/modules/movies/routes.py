@@ -52,6 +52,8 @@ def get_movies(db: Session = Depends(get_db)):
 
     movies = db.query(Movie).all()
 
+    print(movies)
+
     return movies
 
 @router.get("/{movie_id}")
