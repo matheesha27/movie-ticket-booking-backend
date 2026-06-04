@@ -12,6 +12,12 @@ from app.modules.auth.dependencies import get_current_user
 
 router = APIRouter()
 
+
+@router.get("/test/db")
+def test(db: Session = Depends(get_db)):
+    return {"ok": True}
+
+
 @router.post("/")
 def create_movie(request: MovieCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
 
@@ -98,8 +104,3 @@ def get_movie_showtime(request: ShowTimeRequest, db: Session = Depends(get_db)):
     return {
         "show_time": movie.show_time if movie else None
     }
-
-
-@router.get("/db-test")
-def test(db: Session = Depends(get_db)):
-    return {"ok": db.execute("SELECT 1").scalar()}
