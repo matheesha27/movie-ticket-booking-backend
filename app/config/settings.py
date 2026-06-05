@@ -8,6 +8,9 @@ class Settings(BaseSettings):
     mail_password: str
     mail_from: str
 
+    secret_key: str
+    algorithm: str
+
     class Config:
         env_file = ".env"
 

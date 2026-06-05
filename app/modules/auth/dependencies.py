@@ -8,7 +8,7 @@ from app.modules.users.model import User
 import os
 
 SECRET_KEY=os.getenv("SECRET_KEY")
-ALGORITHM="HS256"
+ALGORITHM=os.getenv("ALGORITHM")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")  # Dependency function to retrieve the token
 
