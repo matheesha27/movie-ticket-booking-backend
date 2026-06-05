@@ -29,7 +29,7 @@ origins = [
     "http://localhost:5173",
     "http://localhost:10000",
     "https://movie-ticket-booking-frontend-tau.vercel.app",
-    "https://movie-ticket-booking-frontend-ht9wvoukq.vercel.app",
+    "https://movie-ticket-booking-frontend-ht9wvoukq.vercel.app"
 ]
 
 app.add_middleware(
@@ -37,6 +37,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "https://movie-ticket-booking-frontend-tau.vercel.app",
+        "https://movie-ticket-booking-frontend-ht9wvoukq.vercel.app"
     ],
     allow_credentials=True,
     allow_methods=["*"],
