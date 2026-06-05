@@ -5,9 +5,10 @@ from jose import jwt, JWTError
 from sqlalchemy.orm import Session
 from app.database.dependencies import get_db
 from app.modules.users.model import User
+import os
 
-SECRET_KEY = "MATHEESHA_27"
-ALGORITHM = "HS256"
+SECRET_KEY=os.getenv("SECRET_KEY")
+ALGORITHM=os.getenv("ALGORITHM")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")  # Dependency function to retrieve the token
 
