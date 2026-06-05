@@ -1,10 +1,11 @@
 import os
 from fastapi_mail import ConnectionConfig
+from app.config.settings import settings
 
 conf = ConnectionConfig(
-    MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
-    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
-    MAIL_FROM=os.getenv("MAIL_FROM"),
+    MAIL_USERNAME=settings.mail_username,
+    MAIL_PASSWORD=settings.mail_password,
+    MAIL_FROM=settings.mail_from,
     MAIL_FROM_NAME="CineMax - Movie Ticket Booking",
 
     # 💡 CRITICAL BREVO AND PORT 2525 ROUTING CONFIGURATION:
@@ -15,8 +16,8 @@ conf = ConnectionConfig(
 
     USE_CREDENTIALS=True
     # VALIDATE_CERTS=True
-
-    print(os.getenv("MAIL_USERNAME"));
-    print(os.getenv("MAIL_PASSWORD"));
-    print(os.getenv("MAIL_FROM"));
 )
+
+print(os.getenv("MAIL_USERNAME"))
+print(os.getenv("MAIL_PASSWORD"));
+print(os.getenv("MAIL_FROM"));
