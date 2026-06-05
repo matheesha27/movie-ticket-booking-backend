@@ -15,4 +15,8 @@ conf = ConnectionConfig(
 
     USE_CREDENTIALS=True
     # VALIDATE_CERTS=True
+
+    print(os.getenv("MAIL_USERNAME"));
+    print(os.getenv("MAIL_PASSWORD"));
+    print(os.getenv("MAIL_FROM"));
 )
