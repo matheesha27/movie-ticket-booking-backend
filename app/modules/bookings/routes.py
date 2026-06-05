@@ -86,7 +86,6 @@ def create_booking(request: BookingCreate, db: Session = Depends(get_db), curren
 
 @router.post("/send-otp")
 async def send_otp(payload: dict, db: Session = Depends(get_db)):
-
     email = payload.get("email")
     otp = generate_otp()
     expires_at = datetime.utcnow() + timedelta(minutes=5)
@@ -107,7 +106,6 @@ async def send_otp(payload: dict, db: Session = Depends(get_db)):
 
 @router.post("/verify-otp")
 async def verify_otp(payload: dict, db: Session = Depends(get_db)):
-
     email = payload.get("email")
     otp = payload.get("otp")
     selected_seat_labels = payload.get("seats")
@@ -135,20 +133,30 @@ async def verify_otp(payload: dict, db: Session = Depends(get_db)):
 
     otp_record.verified = True
     # db.commit()
+    formatted_date = datetime.strptime(
+        payload["selected_date"],
+        "%Y-%m-%d"
+    ).strftime("%Y%m%d")
+
+    parsed_time = datetime.strptime(
+        payload["show_time"],
+        "%I.%M%p"
+    )
+    formatted_time = parsed_time.strftime("%H%M")
+
     booking_reference = generate_booking_reference()
 
+    unique_booking_seats_id = str(uuid.uuid4())
+
+    booking = Booking(
+        unique_movie_seat_id=unique_booking_seats_id,
+        booking_reference=booking_reference,
+        created_at=datetime.utcnow()
+    )
+    db.add(booking)
+    db.flush()
+
     try:
-
-        formatted_date = datetime.strptime(
-            payload["selected_date"],
-            "%Y-%m-%d"
-        ).strftime("%Y%m%d")
-
-        parsed_time = datetime.strptime(
-            payload["show_time"],
-            "%I.%M%p"
-        )
-        formatted_time = parsed_time.strftime("%H%M")
 
         for seat_label in selected_seat_labels:
 
@@ -181,14 +189,14 @@ async def verify_otp(payload: dict, db: Session = Depends(get_db)):
                     f"{seat_label} not held"
                 )
 
-            otp_record.verified = True
+            # otp_record.verified = True
 
-            booking = Booking(
-                unique_movie_seat_id=unique_seat_id,
-                booking_reference=booking_reference,
-                created_at=datetime.utcnow()
+            booking_item = BookingItem(
+                booking_id=booking.id,
+                unique_movie_seat_id=unique_seat_id
             )
-            db.add(booking)
+
+            db.add(booking_item)
 
             # Update seat --> BOOKED
             movie_seat.status = "BOOKED"
@@ -199,7 +207,7 @@ async def verify_otp(payload: dict, db: Session = Depends(get_db)):
                 SeatHold.unique_movie_seat_id == unique_seat_id
             ).delete()
 
-            db.commit()
+        db.commit()
 
     except Exception:
         db.rollback()
