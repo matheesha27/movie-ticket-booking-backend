@@ -102,7 +102,7 @@ def get_movie_showtime(request: ShowTimeRequest, db: Session = Depends(get_db)):
         "show_time": movie.show_time if movie else None
     }
 
-@router.get("/banners")
+@router.get("/banners/urls")
 def get_movie_banners(db: Session = Depends(get_db)):
 
     subquery = (
