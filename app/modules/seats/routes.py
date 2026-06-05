@@ -138,14 +138,14 @@ def allocate_movie_seats(request: MovieSeatCreate, db: Session = Depends(get_db)
     movie_seats = []
     for i in range(total_days):
         current_date = start_date + timedelta(days=i)
-        print(current_date.strftime("%Y%m%d"))
+        date_str = current_date.strftime("%Y%m%d")
 
         for cinema_seat in cinema_seats:
             seat_name = cinema_seat.row_name + cinema_seat.seat_number
             unique_movie_seat_id = generate_unique_seat_id(
                 request.cinema_id,
                 request.movie_id,
-                datetime.strptime(request.current_date, "%Y%m%d").strftime("%Y%m%d"),
+                date_str,
                 show_time,
                 seat_name)
             movie_seat = MovieSeat(
