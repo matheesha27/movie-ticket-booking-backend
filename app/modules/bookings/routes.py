@@ -193,7 +193,7 @@ async def verify_otp(payload: dict, db: Session = Depends(get_db)):
 
             booking_item = BookingItem(
                 booking_id=booking.id,
-                movie_seat_id=unique_booking_seats_id
+                movie_seat_id=movie_seat.id
             )
 
             db.add(booking_item)
