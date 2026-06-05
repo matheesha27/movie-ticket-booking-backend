@@ -6,6 +6,7 @@ from app.modules.cinemas.routes import router as cinema_router
 from app.modules.movies.routes import router as movie_router
 from app.modules.seats.routes import router as seat_router
 from app.modules.bookings.routes import router as booking_router
+from app.modules.test.routes import router as test_router
 from app.modules.utils.scheduler import start_scheduler
 
 from app.database.session import engine, Base
@@ -78,6 +79,12 @@ app.include_router(
     booking_router,
     prefix="/bookings",
     tags=["Bookings"]
+)
+
+app.include_router(
+    test_router,
+    prefix="/test",
+    tags=["Test"]
 )
 
 @app.get("/")
