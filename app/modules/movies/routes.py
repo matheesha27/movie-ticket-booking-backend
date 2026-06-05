@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from app.database.dependencies import get_db
-from app.modules.bookings.service import send_otp_email
 
 from app.modules.movies.model import Movie
 from app.modules.movies.schema import MovieCreate, ShowTimeRequest, MovieCinemasRequest
@@ -12,22 +12,6 @@ from app.modules.cinemas.model import Cinema
 from app.modules.auth.dependencies import get_current_user
 
 router = APIRouter()
-
-
-@router.get("/test/db")
-def test(db: Session = Depends(get_db)):
-    return {"ok": True}
-
-@router.get("/test-email")
-async def test_email():
-
-    await send_otp_email(
-        "matheesha27@gmail.com",
-        "123456"
-    )
-
-    return {"status": "sent"}
-
 
 @router.post("/")
 def create_movie(request: MovieCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
@@ -117,3 +101,29 @@ def get_movie_showtime(request: ShowTimeRequest, db: Session = Depends(get_db)):
     return {
         "show_time": movie.show_time if movie else None
     }
+
+@router.get("/banners")
+def get_movie_banners(db: Session = Depends(get_db)):
+
+    subquery = (
+        db.query(
+            func.min(Movie.id).label("movie_id")
+        )
+        .group_by(Movie.title)
+        .subquery()
+    )
+
+    movie_banners = (
+        db.query(Movie)
+        .join(subquery, Movie.id == subquery.c.movie_id)
+        .all()
+    )
+
+    return [
+        {
+            "id": movie.id,
+            "title": movie.title,
+            "banner_image": movie.banner_image
+        }
+        for movie in movie_banners
+    ]
