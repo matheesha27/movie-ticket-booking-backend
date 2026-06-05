@@ -10,7 +10,7 @@ conf = ConnectionConfig(
 
     # 💡 CRITICAL BREVO AND PORT 2525 ROUTING CONFIGURATION:
     MAIL_SERVER="smtp-relay.brevo.com",
-    MAIL_PORT=587,  # Bypasses the Render port 587 block completely
+    MAIL_PORT=2525,  # Bypasses the Render port 587 block completely
     MAIL_STARTTLS=True,  # Must be True for port 2525
     MAIL_SSL_TLS=False,  # Must be False for port 2525
 
