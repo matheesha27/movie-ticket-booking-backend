@@ -127,3 +127,26 @@ def get_movie_banners(db: Session = Depends(get_db)):
         }
         for movie in movie_banners
     ]
+
+@router.get("/movie")
+def get_exact_movie(
+    cinema_id: int,
+    show_time: str,
+    db: Session = Depends(get_db)
+):
+    movie = (
+        db.query(Movie)
+        .filter(
+            Movie.cinema_id == cinema_id,
+            Movie.show_time == show_time
+        )
+        .first()
+    )
+
+    if not movie:
+        raise HTTPException(
+            status_code=404,
+            detail="Movie not found"
+        )
+
+    return movie
