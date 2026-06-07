@@ -51,6 +51,25 @@ def get_movies(db: Session = Depends(get_db)):
 
     return movies
 
+@router.get("/movie-by-cinema")
+def get_movie_by_cinema(
+    cinema_id: int,
+    movie_title: str,
+    show_time: str,
+    db: Session = Depends(get_db)
+):
+    movie = (
+        db.query(Movie)
+        .filter(
+            Movie.cinema_id == cinema_id,
+            Movie.title == movie_title,
+            Movie.show_time == show_time
+        )
+        .first()
+    )
+
+    return movie
+
 @router.get("/{movie_id}")
 def get_movie(movie_id: int, db: Session = Depends(get_db)):
 
@@ -148,24 +167,5 @@ def get_exact_movie(
             status_code=404,
             detail="Movie not found"
         )
-
-    return movie
-
-@router.get("/movie-by-cinema")
-def get_movie_by_cinema(
-    cinema_id: int,
-    movie_title: str,
-    show_time: str,
-    db: Session = Depends(get_db)
-):
-    movie = (
-        db.query(Movie)
-        .filter(
-            Movie.cinema_id == cinema_id,
-            Movie.title == movie_title,
-            Movie.show_time == show_time
-        )
-        .first()
-    )
 
     return movie
