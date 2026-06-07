@@ -27,7 +27,7 @@ Booking Confirmed
 Movie: {payload.get("movie_title")}
 Cinema: {payload.get("cinema_name")}
 Seats: {payload.get("seats")}
-Amount Paid: {payload.get("total_price")}
+Amount Paid: LKR {payload.get("total_price")}
 
 Unique Movie Seat:
 {payload.get("unique_movie_seat_id")}
