@@ -270,7 +270,6 @@ def get_movie_seats(movie_id: int, db: Session = Depends(get_db)):
 def get_unique_movie_seats(
     cinema_id: int = Query(...),
     movie_id: int = Query(...),
-    movie_title: str = Query(...),
     date: str = Query(...),
     show_time: str = Query(...),
     db: Session = Depends(get_db)
@@ -284,8 +283,7 @@ def get_unique_movie_seats(
     """
 
     movie = db.query(Movie).filter(
-        Movie.cinema_id == cinema_id,
-        Movie.title == movie_title
+        Movie.cinema_id == cinema_id
     ).first()
     if not movie:
         raise HTTPException(

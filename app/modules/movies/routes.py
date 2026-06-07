@@ -150,3 +150,22 @@ def get_exact_movie(
         )
 
     return movie
+
+@router.get("/movie-by-cinema")
+def get_movie_by_cinema(
+    cinema_id: int,
+    movie_title: str,
+    show_time: str,
+    db: Session = Depends(get_db)
+):
+    movie = (
+        db.query(Movie)
+        .filter(
+            Movie.cinema_id == cinema_id,
+            Movie.title == movie_title,
+            Movie.show_time == show_time
+        )
+        .first()
+    )
+
+    return movie
