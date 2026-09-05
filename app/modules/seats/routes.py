@@ -115,7 +115,7 @@ def allocate_movie_seats(request: MovieSeatCreate, db: Session = Depends(get_db)
     """
     Allocate all seats for a cinema_id, movie_id, date (range) and show_time.
     date(s) format: YYYYMMDD - "20260531" for 2026-May-31
-    show_time format: "1930" for 7.30pm
+    show_time format: "7.30pm" for 7.30pm
     This generates a globally unique unique_movie_seat in movie_seats table.
     return: MovieSeat array
     """
